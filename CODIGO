@@ -1,0 +1,353 @@
+#include <stdio.h>
+
+#include <conio.h>
+
+#include <stdlib.h>
+
+#include <windows.h>
+
+#include <ctype.h>
+
+
+
+#define ALTURA 70  // Altura del campo de juego
+
+#define ANCHO 120   // Ancho del campo de juego
+
+
+
+int colaSerpienteX[100], colaSerpienteY[100]; // Coordenadas de la cola de la serpiente
+
+int longitudColaSerpiente;                   // Longitud actual de la cola
+
+int juegoTerminado;                          // Si el juego terminó o no
+
+int tecla;                                   // Dirección de la serpiente (1: Izq, 2: Der, 3: Arr, 4: Aba)
+
+int puntuacion;                              // Puntuación del jugador
+
+int x, y;                                    // Coordenadas de la cabeza de la serpiente
+
+int frutaX, frutaY;                          // Coordenadas de la fruta
+
+
+
+void ocultarCursor();      
+
+void moverCursor(int x, int y); 
+
+void configuracion();      
+
+void generarFruta();       
+
+void dibujarBorde();       
+
+void dibujar();            
+
+void entrada();            
+
+void verificarColisiones(); 
+
+void actualizarSerpiente(); 
+
+void verificarFruta();     
+
+void mostrarMensajeFinal(); 
+
+
+
+// Esta función oculta el cursor para no distraernos
+
+void ocultarCursor() {
+
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+
+    CONSOLE_CURSOR_INFO cursorInfo;
+
+    cursorInfo.bVisible = FALSE; // Ocultamos el cursor
+
+    cursorInfo.dwSize = 1;
+
+    SetConsoleCursorInfo(hConsole, &cursorInfo);
+
+}
+
+
+
+// Mueve el cursor a una posición específica en la consola, por eso le paso las coordenadas
+
+void moverCursor(int x, int y) {
+
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+
+    COORD pos = {x, y};
+
+    SetConsoleCursorPosition(hConsole, pos);
+
+}
+
+
+
+// Aquí configuramos las variables iniciales para empezar el juego
+
+void configuracion() {
+
+    juegoTerminado = 0;  // El juego está activo al principio
+
+    x = ANCHO / 2;       // La cabeza de la serpiente empieza en el centro
+
+    y = ALTURA / 2;
+
+    generarFruta();      // Generamos una fruta en una posición aleatoria
+
+    puntuacion = 0;      // Al principio la puntuación es cero
+
+    longitudColaSerpiente = 0; // No hay cola al principio
+
+}
+
+
+
+// Esta función genera la fruta en una posición aleatoria en el campo
+
+void generarFruta() {
+
+    frutaX = 1 + rand() % (ANCHO - 2);   // Generamos la coordenada X de la fruta
+
+    frutaY = 1 + rand() % (ALTURA - 2); // Generamos la coordenada Y de la fruta
+
+}
+
+
+
+// Aquí dibujamos el borde del campo de juego (arriba y abajo)
+
+void dibujarBorde() {
+
+    for (int i = 0; i < ANCHO + 2; i++) printf("-");  // Dibuja el borde superior
+
+    printf("\n");
+
+}
+
+
+
+// Dibuja el juego, incluyendo las paredes, la serpiente y la fruta
+
+void dibujar() {
+
+    moverCursor(0, 0); // Colocamos el cursor en la esquina superior
+
+    dibujarBorde();    // Dibuja el borde superior
+
+
+
+    for (int i = 0; i < ALTURA; i++) {
+
+        for (int j = 0; j <= ANCHO; j++) {
+
+            if (j == 0 || j == ANCHO) 
+
+                printf("#"); // Paredes laterales
+
+            else if (i == y && j == x) 
+
+                printf("O"); // Cabeza de la serpiente
+
+            else if (i == frutaY && j == frutaX) 
+
+                printf("*"); // La fruta
+
+            else {
+
+                int imprimirCola = 0; 
+
+                for (int k = 0; k < longitudColaSerpiente; k++) {
+
+                    if (colaSerpienteX[k] == j && colaSerpienteY[k] == i) {
+
+                        printf("o"); // Cola de la serpiente
+
+                        imprimirCola = 1;
+
+                    }
+
+                }
+
+                if (!imprimirCola) printf(" "); // Si no hay cola, se pone espacio vacío
+
+            }
+
+        }
+
+        printf("\n");
+
+    }
+
+    dibujarBorde(); // Dibuja el borde inferior
+
+    printf("Puntuacion = %d\n", puntuacion); // Muestra la puntuación
+
+    printf("Usa W, A, S, D para moverte. Presiona X para salir.\n");
+
+}
+
+
+
+// Aquí detectamos si el jugador presionó alguna tecla para mover la serpiente
+
+void entrada() {
+
+    if (kbhit()) { // Si se presionó una tecla
+
+        switch (tolower(getch())) { // Dependiendo de la tecla
+
+            case 'a': if (tecla != 2) tecla = 1; break; // Si es "a", va hacia la izquierda
+
+            case 'd': if (tecla != 1) tecla = 2; break; // Si es "d", va hacia la derecha
+
+            case 'w': if (tecla != 4) tecla = 3; break; // Si es "w", va hacia arriba
+
+            case 's': if (tecla != 3) tecla = 4; break; // Si es "s", va hacia abajo
+
+            case 'x': juegoTerminado = 1; break; // Si es "x", termina el juego
+
+        }
+
+    }
+
+}
+
+
+
+// Verifica si la serpiente se salió del campo o chocó con su propia cola
+
+void verificarColisiones() {
+
+    if (x < 0 || x >= ANCHO || y < 0 || y >= ALTURA) juegoTerminado = 1; // Choca con los bordes
+
+    for (int i = 0; i < longitudColaSerpiente; i++) {
+
+        if (colaSerpienteX[i] == x && colaSerpienteY[i] == y) juegoTerminado = 1; // Choca con la cola
+
+    }
+
+}
+
+
+
+// Actualiza la posición de la serpiente según su dirección
+
+void actualizarSerpiente() {
+
+    int prevX = colaSerpienteX[0];
+
+    int prevY = colaSerpienteY[0];
+
+    colaSerpienteX[0] = x;
+
+    colaSerpienteY[0] = y;
+
+
+
+    for (int i = 1; i < longitudColaSerpiente; i++) {
+
+        int tempX = colaSerpienteX[i];
+
+        int tempY = colaSerpienteY[i];
+
+        colaSerpienteX[i] = prevX;
+
+        colaSerpienteY[i] = prevY;
+
+        prevX = tempX;
+
+        prevY = tempY;
+
+    }
+
+
+
+    switch (tecla) {
+
+        case 1: x--; break; // Izquierda
+
+        case 2: x++; break; // Derecha
+
+        case 3: y--; break; // Arriba
+
+        case 4: y++; break; // Abajo
+
+    }
+
+}
+
+
+
+// Aquí verificamos si la serpiente ha comido la fruta
+
+void verificarFruta() {
+
+    if (x == frutaX && y == frutaY) {
+
+        Beep(750, 100); // Suena un "beep" cuando come la fruta
+
+        generarFruta(); // Genera una nueva fruta
+
+        puntuacion += 10; // Incrementa la puntuación
+
+        longitudColaSerpiente++; // La serpiente crece
+
+    }
+
+}
+
+
+
+// Muestra el mensaje final cuando el juego termina
+
+void mostrarMensajeFinal() {
+
+    system("cls");
+
+    printf("Juego Terminado.\n");
+
+    printf("Puntuacion final: %d\n", puntuacion);
+
+    printf("Gracias por jugar.\n");
+
+}
+
+
+
+int main() {
+
+    configuracion(); // Inicializa el juego
+
+    ocultarCursor(); // Oculta el cursor para no distraernos
+
+
+
+    while (!juegoTerminado) { // Mientras el juego no termine
+
+        dibujar();            // Dibuja el estado actual del juego
+
+        entrada();            // Detecta las teclas presionadas
+
+        actualizarSerpiente(); // Mueve la serpiente
+
+        verificarColisiones(); // Verifica si se choca con algo
+
+        verificarFruta();      // Verifica si la serpiente come una fruta
+
+        Sleep(100);           // Controla la velocidad del juego
+
+    }
+
+
+
+    mostrarMensajeFinal(); // Muestra el mensaje final
+
+    return 0;
+
+}
